@@ -1,0 +1,83 @@
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <strstream>
+#include <vector>
+#include <algorithm>
+#include <opencv2\opencv.hpp>
+using namespace std;
+using namespace cv;
+
+const string teiPrefix = "MNIST\\testImages\\";
+const string telPrefix = "MNIST\\testLabels\\";
+const string triPrefix = "MNIST\\trainImages\\";
+const string trlPrefix = "MNIST\\trainLabels\\";
+
+//大小端转换
+void transpose(int* start, unsigned n)
+{
+	char ch;
+	int* curr = start;
+	while (curr < start + n)
+	{
+		ch = ((char*)curr)[0];
+		((char*)curr)[0] = ((char*)curr)[3];
+		((char*)curr)[3] = ch;
+		ch = ((char*)curr)[1];
+		((char*)curr)[1] = ((char*)curr)[2];
+		((char*)curr)[2] = ch;
+		curr++;
+	}
+}
+
+
+int main()
+{
+	ifstream images(teiPrefix +"testImages.dat", std::ios::binary);
+	ifstream labels(telPrefix + "testLabels.dat", std::ios::binary);
+
+	
+	int imgHead[4];
+	int labHead[2];
+	int count[10] = { 0 };
+
+	images.read((char*)imgHead, sizeof(int) * 4);
+	transpose(imgHead, 4);
+	labels.read((char*)labHead, sizeof(int) * 2);
+	transpose(labHead, 2);
+
+	cout << "number of items:" << imgHead[1] << endl;
+	cout << "number of rows:" << imgHead[2] << endl;
+	cout << "number of columns:" << imgHead[3] << endl;
+
+	int picSize = imgHead[2] * imgHead[3];
+	uchar* picture = new uchar[picSize];
+	uchar picLabel;
+	int index;
+	stringstream ss1;   
+
+	for (int i = 0; i < imgHead[1]; i++)
+	{
+		images.read((char*)picture, sizeof(uchar) * picSize);
+		labels.read((char*)&picLabel, sizeof(uchar));
+		Mat mat(imgHead[2], imgHead[3], CV_8UC1, picture);
+
+		index = picLabel;
+		ss1.str("");
+		count[index]++;
+	
+		
+		ss1 << index << '/' << index << '_' << count[index]<<".bmp";
+		imwrite(teiPrefix + ss1.str(), mat);
+		if (i % 1000 == 0)
+			cout << "正在处理第：" << i << "个" << endl;
+
+	}
+	cout << "处理完成" << endl;
+	images.close();
+	labels.close();
+
+
+	cin.get();
+	return 0;
+}
